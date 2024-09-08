@@ -1,11 +1,13 @@
+import { Websocket } from "websocket-ts";
 import { IMap, MapItem } from ".";
+// import { ChangeEventData } from "../ws/events";
 import {
   BombType,
   ChangeEventData,
   LastActionEventData,
   PowerUp,
   WsMapEventData,
-} from "../ws";
+} from "../ws/events";
 
 interface MapChangeHander extends ChangeEventData {
   map: IMap;
@@ -98,7 +100,7 @@ export class Handler {
 
   private lastAction(map: IMap, data: LastActionEventData) {}
 
-  handle_event(map: IMap, data: WsMapEventData) {
+  handle_event(map: IMap, i: Websocket, data: WsMapEventData) {
     switch (data.type) {
       case "ChangeEvent":
         this.change(map, data.data);

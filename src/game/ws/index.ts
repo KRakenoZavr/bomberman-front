@@ -7,12 +7,8 @@ import {
   WebsocketBuilder,
   WebsocketEvent,
   WebsocketEventListener,
+  WebsocketEventMap,
 } from "websocket-ts";
-import { WsData } from "./events";
-import { WsKeyEventData } from "./events/key_event";
-import { WsMapEventData } from "./events/map_event";
-
-export * from "./events";
 
 // const ws = new WebsocketBuilder("ws://localhost:8080")
 //     .withBuffer(new ArrayQueue()).withBackoff(new ConstantBackoff(1000))
@@ -41,23 +37,23 @@ const onClose = (i: Websocket, ev: CloseEvent) =>
 const onError = (i: Websocket, ev: Event) =>
   console.log("webscoket error: ", ev);
 
-const mapHandler = (data: WsMapEventData) => console.log(data);
-const keyHandler = (data: WsKeyEventData) => console.log(data);
+// const mapHandler = (data: WsMapEventData) => console.log(data);
+// const keyHandler = (data: WsKeyEventData) => console.log(data);
 
 // const onMessage = ((i: Websocket, { data }: MessageEvent<WsData>) => isMapEvent(data) ? mapHandler(data.data) : keyHandler(data.data))
-const onMessage = (i: Websocket, { data }: MessageEvent<WsData>) => {
-  switch (data.type) {
-    case "WsKeyEvent":
-      keyHandler(data.data);
-      break;
+// const onMessage = (i: Websocket, { data }: MessageEvent<WsData>) => {
+//   switch (data.type) {
+//     case "WsKeyEvent":
+//       keyHandler(data.data);
+//       break;
 
-    case "WsMapEvent":
-      mapHandler(data.data);
-      break;
-    default:
-      break;
-  }
-};
+//     case "WsMapEvent":
+//       mapHandler(data.data);
+//       break;
+//     default:
+//       break;
+//   }
+// };
 
 // const onMessage = ((i: Websocket, ev: MessageEvent<any>) => {
 //     const data = ev.data.data
@@ -95,7 +91,9 @@ export class WS {
     this.ws.send(data);
   }
 
-  addMessageListener(listener: WebsocketEventListener<WebsocketEvent>) {
-    this.ws.addEventListener(WebsocketEvent.message, listener);
+  addMessageListener(
+    event: (i: Websocket, ev: WebsocketEventMap[WebsocketEvent.message]) => void
+  ) {
+    this.ws.addEventListener(WebsocketEvent.message, event);
   }
 }
