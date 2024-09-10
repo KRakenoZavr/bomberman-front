@@ -1,6 +1,5 @@
 import { Websocket } from "websocket-ts";
-import { IMap, MapItem } from ".";
-// import { ChangeEventData } from "../ws/events";
+import { IMap, MapItem, MapRender } from ".";
 import {
   BombType,
   ChangeEventData,
@@ -8,9 +7,12 @@ import {
   PowerUp,
   WsMapEventData,
 } from "../ws/events";
+import { BombRender } from "./render/image_types/bomb";
+import { PowerUpRender } from "./render/image_types/power_up";
+import { BoomRender, DeathRender } from "./render/impl";
 
 interface MapChangeHander extends ChangeEventData {
-  map: IMap;
+  map: MapRender;
 }
 
 type MapChangeDefault = Omit<MapChangeHander, "cmd">;
@@ -18,22 +20,22 @@ type MapChangeDefault = Omit<MapChangeHander, "cmd">;
 export class ChangeHandler {
   constructor() {}
 
-  handle({ map, cmd, x, y }: MapChangeHander) {
+  handle({ map, cmd, id }: MapChangeHander) {
     switch (cmd.type) {
       case "Delete":
-        this.delete({ map, x, y });
+        this.delete({ map, id });
         break;
       case "PowerUp":
-        this.powerUp({ map, x, y }, cmd.data);
+        this.powerUp({ map, id }, cmd.data);
         break;
       case "Death":
-        this.death({ map, x, y });
+        this.death({ map, id });
         break;
       case "Place":
-        this.place({ map, x, y }, cmd.data);
+        this.place({ map, id }, cmd.data);
         break;
       case "Boom":
-        this.boom({ map, x, y }, cmd.data);
+        this.boom({ map, id }, cmd.data);
         break;
       default:
         break;
@@ -44,42 +46,60 @@ export class ChangeHandler {
     console.log(`${msg}\n${dto}`);
   }
 
-  private delete({ map, x, y }: MapChangeDefault) {
-    this.log({ map, x, y }, "delete command:");
-    map[x][y] = "empty";
+  // sets cell to empty
+  private delete({ map, id }: MapChangeDefault) {
+    this.log({ map, id }, "delete command:");
+    map.set_empty(id);
   }
 
-  private powerUp({ map, x, y }: MapChangeDefault, payload: PowerUp) {
-    this.log({ map, x, y }, `power_up command:\npayload: ${payload}`);
-    switch (payload) {
-      case "bomb":
-        // TODO
-        this.log({ map, x, y }, "bomb animation");
-        break;
-      case "lifeUp":
-        // TODO
-        this.log({ map, x, y }, "lifeUp animation");
-        break;
-      default:
-        break;
-    }
+  // picked power up
+  private powerUp({ map, id }: MapChangeDefault, payload: PowerUp) {
+    this.log({ map, id }, `power_up command:\npayload: ${payload}`);
+
+    const render = map.get_by_id(id).getRender() as PowerUpRender;
+    render.animation(payload);
+    this.log({ map, id }, `${payload} animation`);
+
+    // switch (payload) {
+    //   case "bomb":
+    //     // TODO
+
+    //     break;
+    //   case "lifeUp":
+    //     // TODO
+    //     this.log({ map, id }, "lifeUp animation");
+    //     break;
+    //   default:
+    //     break;
+    // }
   }
 
-  private death({ map, x, y }: MapChangeDefault) {
-    this.log({ map, x, y }, "death command:");
+  // death of item at coords
+  private death({ map, id }: MapChangeDefault) {
+    this.log({ map, id }, "death command:");
     // TODO
-    this.log({ map, x, y }, "death animation");
+    map.get_by_id(id).death();
+    this.log({ map, id }, "death animation");
   }
 
-  private place({ map, x, y }: MapChangeDefault, item: MapItem) {
-    this.log({ map, x, y }, `place command:\nitem: ${item}`);
-    map[x][y] = item;
+  // replace cell to other item
+  private place({ map, id }: MapChangeDefault, item: MapItem) {
+    this.log({ map, id }, `place command:\nitem: ${item}`);
+    map.set_item(id, item);
   }
 
-  private boom({ map, x, y }: MapChangeDefault, type: BombType) {
-    this.log({ map, x, y }, `boom command:\ntype: ${type}`);
+  // move player
+  // private move_player({ map, id }: MapChangeDefault, item: MapItem) {
+  //   this.log({ map, id }, `place command:\nitem: ${item}`);
+  //   map.set_item(id, item);
+  // }
+
+  // bomb explosion at coords
+  private boom({ map, id }: MapChangeDefault, type: BombType) {
+    this.log({ map, id }, `boom command:\ntype: ${type}`);
     // TODO
-    this.log({ map, x, y }, "death animation");
+    map.get_by_id(id).boom(type);
+    this.log({ map, id }, "boom animation");
   }
 }
 
@@ -90,17 +110,36 @@ export class Handler {
     this.changeHandler = new ChangeHandler();
   }
 
-  private sync(map1: IMap, map2: IMap) {
-    map1.forEach((v, i) => v.forEach((_, i2) => (map1[i][i2] = map2[i][i2])));
+  private sync(mapRender: MapRender, map: IMap) {
+    map.forEach((v, i1) =>
+      v.forEach((_, i2) =>
+        mapRender.get_render(i1, i2).getType() == map[i1][i2].type
+          ? undefined
+          : mapRender.set_item_idx(i1, i2, map[i1][i2])
+      )
+    );
+
+    // map.forEach((v, i1) =>
+    //   v.forEach((_, i2) => {
+    //     let r = mapRender.get_render(i1, i2);
+    //     if (map[i1][i2] != r.getType()) {
+    //       mapRender.set_render(
+    //         i1,
+    //         i2,
+    //         new Render({ item: map[i1][i2], x: i1, y: i2 })
+    //       );
+    //     }
+    //   })
+    // );
   }
 
-  private change(map: IMap, payload: ChangeEventData) {
+  private change(map: MapRender, payload: ChangeEventData) {
     this.changeHandler.handle({ map, ...payload });
   }
 
-  private lastAction(map: IMap, data: LastActionEventData) {}
+  private lastAction(map: MapRender, data: LastActionEventData) {}
 
-  handle_event(map: IMap, i: Websocket, data: WsMapEventData) {
+  handle_event(map: MapRender, i: Websocket, data: WsMapEventData) {
     switch (data.type) {
       case "ChangeEvent":
         this.change(map, data.data);

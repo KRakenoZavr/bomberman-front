@@ -2,10 +2,10 @@ import { IMap } from "../../map";
 import { Cmd } from "./commands";
 
 export interface ChangeEventData {
-  x: number;
-  y: number;
+  id: string;
   cmd: Cmd;
 }
+
 export interface ChangeEvent {
   type: "ChangeEvent";
   data: ChangeEventData;

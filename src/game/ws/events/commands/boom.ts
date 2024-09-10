@@ -1,4 +1,4 @@
-export type BombType = "Single" | "Double";
+export type BombType = "Standard" | "Flame";
 
 export interface BoomCommand {
   type: "Boom";
