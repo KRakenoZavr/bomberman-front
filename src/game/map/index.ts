@@ -11,7 +11,7 @@ export type MapItemType =
   | "wallTwo"
   | "powerUp";
 
-export type MapItem = { id: string; type: MapItemType };
+export type MapItem = { id?: string; type: MapItemType };
 
 export type IMap = MapItem[][];
 

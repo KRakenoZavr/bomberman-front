@@ -6,16 +6,16 @@ export interface ChangeEventData {
   cmd: Cmd;
 }
 
-export interface ChangeEvent {
-  type: "ChangeEvent";
-  data: ChangeEventData;
-}
-
 export type LastAction = "" | "";
 
 export interface LastActionEventData {
   keyCode: string;
   lastAction: LastAction;
+}
+
+export interface ChangeEvent {
+  type: "ChangeEvent";
+  data: ChangeEventData;
 }
 
 export interface LastActionEvent {
